@@ -110,6 +110,12 @@ command.install() {
   oc policy add-role-to-user system:image-puller system:serviceaccount:$dev_prj:default -n $cicd_prj
   oc policy add-role-to-user system:image-puller system:serviceaccount:$stage_prj:default -n $cicd_prj
 
+  info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
+  oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
+  oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
+  oc patch cm/argocd-rbac-cm -n $cicd_prj --type=merge -p '{"data":{"policy.default":"role:admin"}}'
+
+
   info "Deploying CI/CD infra to $cicd_prj namespace"
   oc apply -f infra -n $cicd_prj
   GITEA_HOSTNAME=$(oc get route gitea -o template --template='{{.spec.host}}' -n $cicd_prj)
@@ -225,9 +231,22 @@ spec:
 EOF
   oc apply -k argo -n $cicd_prj
 
+cat <<EOF | kubectl apply -n $cicd_prj -f -
+kind: Secret
+apiVersion: v1
+metadata:
+  name: argocd-default-cluster-config
+data:
+  config: $(echo -n '{"tlsClientConfig":{"insecure":false}}' | base64)
+  name: $(echo -n "in-cluster" | base64)
+  namespaces: $(echo -n "$cicd_prj,$dev_prj,$stage_prj" | base64)
+  server: $(echo -n "https://kubernetes.default.svc" | base64)
+type: Opaque
+EOF
+
   info "Wait for Argo CD route..."
 
-  until oc get route argocd-server -n $cicd_prj >/dev/null 2>/dev/null
+  until oc get route argocd-demo-server -n $cicd_prj >/dev/null 2>/dev/null
   do
     wait_seconds 5
   done

@@ -49,7 +49,7 @@ spec:
           resp = requests.post(url = giteaURL + "/user/sign_up", data = data_user) 
 
           if resp.status_code != 200:
-            print("Error creating Gogs admin (status code: {})".format(resp.status_code))
+            print("Error creating Gitea admin (status code: {})".format(resp.status_code))
             print(resp.content)
           else:
             print("Created admin user {}:{}".format(gitea_user, gitea_pwd))

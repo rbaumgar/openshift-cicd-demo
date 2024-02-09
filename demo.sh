@@ -20,10 +20,10 @@ err() {
 }
 
 wait_seconds() {
-  local count=${1:-5}
-  for i in {1..$count}
+  local count=$1
+  for i in $(seq 1 $count)
   do
-    echo "."
+    printf "."
     sleep 1
   done
   printf "\n"
@@ -110,11 +110,10 @@ command.install() {
   oc policy add-role-to-user system:image-puller system:serviceaccount:$dev_prj:default -n $cicd_prj
   oc policy add-role-to-user system:image-puller system:serviceaccount:$stage_prj:default -n $cicd_prj
 
-  info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
-  oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
-  oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
-  oc patch cm/argocd-rbac-cm -n $cicd_prj --type=merge -p '{"data":{"policy.default":"role:admin"}}'
-
+  # info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
+  # oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
+  # oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
+  
 
   info "Deploying CI/CD infra to $cicd_prj namespace"
   oc apply -f infra -n $cicd_prj
@@ -158,9 +157,9 @@ command.install() {
   cd spring-petclinic 
   git config user.email "openshift-pipelines@redhat.com"
   git config user.name "openshift-pipelines"
-  cat .tekton/build.yaml | grep -A 2 GIT_REPOSITORY
+  cat .tekton/build.yaml | grep -A 1 GIT_REPOSITORY
   cross_sed "s#https://github.com/siamaksade/spring-petclinic-config#http://$GITEA_HOSTNAME/gitea/spring-petclinic-config#g" .tekton/build.yaml
-  cat .tekton/build.yaml | grep -A 2 GIT_REPOSITORY
+  cat .tekton/build.yaml | grep -A 1 GIT_REPOSITORY
   git status
   git add .tekton/build.yaml
   git commit -m "Updated manifests git url"
@@ -281,7 +280,7 @@ EOF
   Gitea Git Server: http://$GITEA_HOSTNAME/explore/repos
   SonarQube: https://$(oc get route sonarqube -o template --template='{{.spec.host}}' -n $cicd_prj)
   Sonatype Nexus: http://$(oc get route nexus -o template --template='{{.spec.host}}' -n $cicd_prj)
-  Argo CD:  http://$(oc get route argocd-server -o template --template='{{.spec.host}}' -n $cicd_prj)  [login with OpenShift credentials]
+  Argo CD:  https://$(oc get route argocd-demo-server -o template --template='{{.spec.host}}' -n $cicd_prj)  [login with OpenShift credentials]
 
 ############################################################################
 ############################################################################

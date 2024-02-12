@@ -120,10 +120,11 @@ command.install() {
   GITEA_HOSTNAME=$(oc get route gitea -o template --template='{{.spec.host}}' -n $cicd_prj)
 
   info "Initiatlizing git repository in Gitea and configuring webhooks"
-  WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n pipelines-as-code -o template --template="{{.spec.host}}"  --ignore-not-found)
-  if [ -z "$WEBHOOK_URL" ]; then 
-      WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n openshift-pipelines -o template --template="{{.spec.host}}")
-  fi
+  # WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n pipelines-as-code -o template --template="{{.spec.host}}"  --ignore-not-found)
+  # if [ -z "$WEBHOOK_URL" ]; then 
+  #     WEBHOOK_URL=$(oc get route pipelines-as-code-controller -n openshift-pipelines -o template --template="{{.spec.host}}")
+  # fi
+  WEBHOOK_URL=`oc get cm -n openshift-pipelines pipelines-as-code-info -o jsonpath="{['data']['controller-url']}"`
 
   sed "s/@HOSTNAME/$GITEA_HOSTNAME/g" config/gitea-configmap.yaml | oc create -f - -n $cicd_prj
   oc rollout status deployment/gitea -n $cicd_prj
@@ -250,10 +251,6 @@ EOF
     wait_seconds 5
   done
 
-  info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
-  oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
-  oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
-
   oc project $cicd_prj
 
   cat <<-EOF
@@ -285,6 +282,11 @@ EOF
 ############################################################################
 ############################################################################
 EOF
+
+  info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
+  oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
+  oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
+
 }
 
 command.start() {

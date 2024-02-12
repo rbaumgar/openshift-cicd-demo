@@ -20,20 +20,20 @@ This repo is a CI/CD demo using [Tekton Pipelines](http://www.tekton.dev) for co
 
 ## Continuous Integration
 
-On every push or pull-request to the `spring-petclinic` git repository on Gitea git server, the following steps are executed within the Tekton pipeline:
+On every push or pull request to the `spring-petclinic` git repository on the Gitea git server, the following steps are executed within the Tekton pipeline:
 
-1. Code is cloned from Gitea git server and the unit-tests are run
-1. Unit tests are executed and in parallel the code is analyzed by SonarQube for anti-patterns, and a dependency report is generated
-1. Application is packaged as a JAR and released to Sonatype Nexus snapshot repository
-1. A container image is built in DEV environment using S2I, and pushed to OpenShift internal registry, and tagged with `spring-petclinic:[branch]-[commit-sha]` and `spring-petclinic:latest`
+1. Code is cloned from the Gitea git server and the unit tests are run
+1. Unit tests are executed and in parallel, the code is analyzed by SonarQube for anti-patterns, and a dependency report is generated
+1. Application is packaged as a JAR and released to the Sonatype Nexus snapshot repository
+1. A container image is built in the DEV environment using S2I, pushed to OpenShift internal registry, and tagged with `spring-petclinic:[branch]-[commit-sha]` and `spring-petclinic:latest`
 1. Kubernetes manifests are updated in the Git repository with the image digest that was built within the pipeline
-1. A pull-requested is created on config repo for merging the image digest update into the STAGE environment
+1. A pull request is created on the config repo for merging the image digest update into the STAGE environment
 
 ![Pipeline Diagram](docs/images/ci-pipeline.svg)
 
 ## Continuous Delivery
 
-Argo CD continuously monitor the configurations stored in the Git repository and uses [Kustomize](https://kustomize.io/) to overlay environment specific configurations when deploying the application to DEV and STAGE environments.
+Argo CD continuously monitors the configurations stored in the Git repository and uses [Kustomize](https://kustomize.io/) to overlay environment-specific configurations when deploying the application to DEV and STAGE environments.
 
 ![Continuous Delivery](docs/images/cd.png)
 
@@ -46,26 +46,26 @@ Argo CD continuously monitor the configurations stored in the Git repository and
 
     ```text
     $ oc new-project demo
-    $ git clone https://github.com/siamaksade/openshift-cicd-demo
+    $ git clone https://github.com/rbaumgar/openshift-cicd-demo
     $ demo.sh install
     ```
 
 ## Demo Instructions
 
-1. Go to spring-petclinic Git repository in Gitea
+1. Go to the spring-petclinic Git repository in Gitea
 1. Log into Gitea with username/password: `gitea`/`openshift`
-1. Edit a file in the repository and commit to trigger the pipeline. Alternatively, create a pull-request instead to see the result on the deployed app before merging.
+1. Edit a file in the repository and commit to trigger the pipeline. Alternatively, create a pull request instead to see the result on the deployed app before merging.
 1. Check the pipeline run logs in Dev Console or Tekton CLI:
 
    ```text
    $ opc pac logs -n demo-cicd
    ```
 
-1. Once the pipeline finishes successfully, the image reference in the `spring-petclinic-config/environments/dev` are updated with the new image digest and automatically deployed to the DEV environment by Argo CD. If Argo CD hasn't polled the Git repo for changes yet, click on the "Refresh" button on the Argo CD application.
+1. Once the pipeline finishes successfully, the image reference in the `spring-petclinic-config/environments/dev` is updated with the new image digest and automatically deployed to the DEV environment by Argo CD. If Argo CD hasn't polled the Git repo for changes yet, click on the "Refresh" button on the Argo CD application.
 
 1. Login into Argo CD dashboard and check the sync history of `dev-spring-petclinic` application to verify the recent deployment
 
-1. Go to the pull requests tab on `spring-petclinic-config` Git repository in Gitea and merge the pull-requested that is generated for promotion from DEV to STAGE
+1. Go to the pull requests tab on `spring-petclinic-config` Git repository in Gitea and merge the pull request that is generated for promotion from DEV to STAGE
 
 1. Check the sync history of `stage-spring-petclinic` application in Argo CD dashboard to verify the recent deployment to the staging environment. If Argo CD hasn't polled the Git repo for changes yet, click on the "Refresh" button on the Argo CD application.
 
@@ -89,7 +89,7 @@ Argo CD continuously monitor the configurations stored in the Git repository and
 You might have just installed the OpenShift Pipelines operator on the cluster and the operator has not finished installing Tekton on the cluster yet. Wait a few minutes for the operator to finish and then install the demo.
 
 
-**Q: why do I get `Unable to deploy revision: permission denied` when I manually sync an Application in Argo CD dashboard?**
+**Q: Why do I get `Unable to deploy revision: permission denied` when I manually sync an Application in Argo CD dashboard?**
 
 When you log into Argo CD dashboard using your OpenShift credentials, your access rights in Argo CD will be assigned based on your access rights in OpenShift. The Argo CD instance in this demo is [configured](https://github.com/siamaksade/openshift-cicd-demo/blob/main/argo/argocd.yaml#L21) to map `kubeadmin` and any users in the `ocp-admins` groups in OpenShift to an Argo CD admin user. Note that `ocp-admins` group is not available in OpenShift by default. You can create this group using the following commands:
 

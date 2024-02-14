@@ -110,11 +110,6 @@ command.install() {
   oc policy add-role-to-user system:image-puller system:serviceaccount:$dev_prj:default -n $cicd_prj
   oc policy add-role-to-user system:image-puller system:serviceaccount:$stage_prj:default -n $cicd_prj
 
-  # info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
-  # oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
-  # oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
-  
-
   info "Deploying CI/CD infra to $cicd_prj namespace"
   oc apply -f infra -n $cicd_prj
   GITEA_HOSTNAME=$(oc get route gitea -o template --template='{{.spec.host}}' -n $cicd_prj)
@@ -128,7 +123,7 @@ command.install() {
 
   sed "s/@HOSTNAME/$GITEA_HOSTNAME/g" config/gitea-configmap.yaml | oc create -f - -n $cicd_prj
   oc rollout status deployment/gitea -n $cicd_prj
-  sed "s#@webhook-url@#https://$WEBHOOK_URL#g" config/gitea-init-taskrun.yaml | oc create -f - -n $cicd_prj
+  sed "s#@webhook-url@#$WEBHOOK_URL#g" config/gitea-init-taskrun.yaml | oc create -f - -n $cicd_prj
 
 
   wait_seconds 20
@@ -161,7 +156,7 @@ command.install() {
   cat .tekton/build.yaml | grep -A 1 GIT_REPOSITORY
   cross_sed "s#https://github.com/siamaksade/spring-petclinic-config#http://$GITEA_HOSTNAME/gitea/spring-petclinic-config#g" .tekton/build.yaml
   cat .tekton/build.yaml | grep -A 1 GIT_REPOSITORY
-  git status
+  # git status
   git add .tekton/build.yaml
   git commit -m "Updated manifests git url"
   git remote add auth-origin http://gitea:openshift@$GITEA_HOSTNAME/gitea/spring-petclinic
@@ -207,8 +202,7 @@ EOF
 
   info "Configure Argo CD"
 
-  cat << EOF > argo/tmp-argocd-app-patch.yaml
----
+  cat << EOF > argo/tmp-argocd-app-dev-patch.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -218,7 +212,9 @@ spec:
     namespace: $dev_prj
   source:
     repoURL: http://$GITEA_HOSTNAME/gitea/spring-petclinic-config
----
+EOF
+
+  cat << EOF > argo/tmp-argocd-app-stage-patch.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -229,6 +225,7 @@ spec:
   source:
     repoURL: http://$GITEA_HOSTNAME/gitea/spring-petclinic-config
 EOF
+
   oc apply -k argo -n $cicd_prj
 
 cat <<EOF | kubectl apply -n $cicd_prj -f -
@@ -283,9 +280,20 @@ EOF
 ############################################################################
 EOF
 
-  info "Grants permissions to ArgoCD instances to manage resources in target namespaces"
-  oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj
-  oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj
+  info "Grants permissions to Argo CD instances to manage resources in target namespaces"
+  oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj 2>/dev/null || {
+    echo "Please ask cluster admin to execute following two commands"
+    echo " "
+    echo "oc label ns $dev_prj argocd.argoproj.io/managed-by=$cicd_prj"
+    echo "oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj"
+    echo " "
+    echo "if not done Argo CD cann't rollout application"
+  }
+  oc label ns $stage_prj argocd.argoproj.io/managed-by=$cicd_prj 2>/dev/null || {
+    echo " "
+  }
+
+  info "Installation done."
 
 }
 

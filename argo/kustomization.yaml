@@ -4,5 +4,6 @@ resources:
 - argocd-app-dev.yaml
 - argocd-app-stage.yaml
 
-patchesStrategicMerge:
-- tmp-argocd-app-patch.yaml
+patches:
+  - path: tmp-argocd-app-dev-patch.yaml
+  - path: tmp-argocd-app-stage-patch.yaml

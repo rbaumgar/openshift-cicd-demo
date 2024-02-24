@@ -18,6 +18,8 @@ This repo is a CI/CD demo using [Tekton Pipelines](http://www.tekton.dev) for co
 * OpenShift GitOps 1.8
 * OpenShift Pipelines 1.10
 
+That Operator has to be installed before this example can run. If you are not `admin` on your cluster this has to be done by an admin.
+
 ## Continuous Integration
 
 On every push or pull request to the `spring-petclinic` git repository on the Gitea git server, the following steps are executed within the Tekton pipeline:
@@ -84,10 +86,18 @@ Argo CD continuously monitors the configurations stored in the Git repository an
 
 ## Troubleshooting
 
+**Q: Why do I get `Error from server (NotFound): configmaps "pipelines-as-code-info" not found` during the installation?**
+
+You might have just installed the OpenShift Pipelines operator on the cluster and the operator has not finished installing Tekton on the cluster yet. Wait a few minutes for the operator to finish and then install the demo.
+
 **Q: Why am I getting `unable to recognize "tasks/task.yaml": no matches for kind "Task" in version "tekton.dev/v1beta1"` errors?**
 
 You might have just installed the OpenShift Pipelines operator on the cluster and the operator has not finished installing Tekton on the cluster yet. Wait a few minutes for the operator to finish and then install the demo.
 
+**Q: Why does the pipelinerun fails at `unit-tests`?**
+
+You might have not enough memory for this step. You will need more than 2GB of memory. Sometimes the project/namespace has a limit of 1,5 GB.
+Either change the limit or skip the tests by updating the `.tekton/build.yaml` in the `sping-petclinic` repo. Add `-DskipTests`at line 66.
 
 **Q: Why do I get `Unable to deploy revision: permission denied` when I manually sync an Application in Argo CD dashboard?**
 
